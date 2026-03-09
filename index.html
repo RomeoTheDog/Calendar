@@ -311,8 +311,11 @@ function load(){ try{ const d=localStorage.getItem('tq2_state'); if(d) state={..
 
 // ─── DATE HELPERS ─────────────────────────────────────────────────────────────
 function today(){ return fmtDate(new Date()); }
-function fmtDate(d){ return d.toISOString().split('T')[0]; }
-function parseDate(s){ const [y,m,d]=s.split('-'); return new Date(y,m-1,d); }
+function fmtDate(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function parseDate(s){ const [y,m,d]=s.split('-'); return new Date(parseInt(y),parseInt(m)-1,parseInt(d)); }
 function getWeekDates(offset=0){
   const now=new Date(), mon=new Date(now);
   const day=now.getDay()===0?7:now.getDay(); // 0=Sun→7, else Mon=1..Sat=6
@@ -348,4 +351,364 @@ function renderHeader(){
 }
 
 function renderHeatmap(){
-  const last7=Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-6+i); re
+  const last7=Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-6+i); return fmtDate(d); });
+  const el=document.getElementById('heatmap');
+  el.innerHTML='';
+  last7.forEach(ds=>{
+    const pct=getDayCompletion(ds);
+    let lv=0;
+    if(pct>0) lv=1; if(pct>=0.25) lv=2; if(pct>=0.5) lv=3; if(pct>=0.75) lv=4; if(pct>=1) lv=5;
+    const c=document.createElement('div');
+    c.className=`hm-cell hm-${lv}`;
+    c.title=ds+': '+Math.round(pct*100)+'%';
+    c.textContent=DAY_NAMES[(parseDate(ds).getDay()+6)%7];
+    el.appendChild(c);
+  });
+}
+
+function renderWeekNav(){
+  const dates=getWeekDates(currentWeekOffset);
+  const d1=parseDate(dates[0]),d2=parseDate(dates[6]);
+  document.getElementById('weekTitle').textContent=`${d1.getDate()}. ${MONTHS[d1.getMonth()]} – ${d2.getDate()}. ${MONTHS[d2.getMonth()]} ${d2.getFullYear()}`;
+}
+
+function renderDayTabs(){
+  const dates=getWeekDates(currentWeekOffset), t=today();
+  if(!selectedDate||!dates.includes(selectedDate)) selectedDate=dates.includes(t)?t:dates[0];
+  const el=document.getElementById('daysScroll');
+  el.innerHTML='';
+  dates.forEach((ds,i)=>{
+    const div=document.createElement('div');
+    div.className='day-tab'+(ds===selectedDate?' active':'')+(ds===t?' today':'');
+    if(getTasksForDate(ds).length>0) div.classList.add('has-tasks');
+    const pct=getDayCompletion(ds);
+    div.innerHTML=`<div class="day-name">${DAY_NAMES[i]}</div><div class="day-num">${parseInt(ds.split('-')[2])}</div><div class="day-dot" style="background:${pct>=1&&getTasksForDate(ds).length?'#81c784':'transparent'}"></div>`;
+    div.onclick=()=>{ selectedDate=ds; renderDayTabs(); renderContent(); };
+    el.appendChild(div);
+  });
+  setTimeout(()=>{ const a=el.querySelector('.active'); if(a) a.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'}); },50);
+}
+
+function renderContent(){
+  const el=document.getElementById('mainContent');
+  el.innerHTML='';
+  const ds=selectedDate;
+  const tasks=getTasksForDate(ds);
+  const allDone=tasks.length>0&&tasks.every(t=>isComplete(t.id,ds));
+
+  if(typeof Notification!=='undefined'&&Notification.permission==='default'){
+    const b=document.createElement('div'); b.className='notify-banner';
+    b.innerHTML=`<span>🔔 Povol notifikace</span><button onclick="requestNotify()">Povolit</button>`;
+    el.appendChild(b);
+  }
+
+  if(allDone){
+    const b=document.createElement('div'); b.className='day-complete';
+    b.innerHTML=`<h3>🎉 Perfektní den!</h3><p>Splnil jsi všechny úkoly!</p>`;
+    el.appendChild(b);
+  }
+
+  if(tasks.length===0){
+    const e=document.createElement('div'); e.className='empty-state';
+    e.innerHTML=`<div class="icon">📭</div><p>Žádné úkoly.<br>Přidej si je tlačítkem +</p>`;
+    el.appendChild(e); return;
+  }
+
+  const d=parseDate(ds);
+  const h=document.createElement('div');
+  h.style.cssText='font-size:16px;font-weight:700;margin-bottom:12px;color:var(--text2)';
+  h.textContent=DAY_FULL[(d.getDay()+6)%7]+', '+d.getDate()+'. '+MONTHS[d.getMonth()];
+  el.appendChild(h);
+
+  // Group tasks by category
+  const grouped={};
+  tasks.forEach(t=>{ if(!grouped[t.cat]) grouped[t.cat]=[]; grouped[t.cat].push(t); });
+  Object.entries(grouped).forEach(([catId,catTasks])=>{
+    renderSection(el, catTasks, catId, ds);
+  });
+}
+
+function renderSection(parent, tasks, catId, ds){
+  const cat=getCat(catId);
+  const done=tasks.filter(t=>isComplete(t.id,ds)).length;
+  const sec=document.createElement('div'); sec.className='section';
+  sec.innerHTML=`<div class="section-header">
+    <div class="section-title" style="color:${cat.color}">${cat.icon} ${cat.name}</div>
+    <div class="section-progress">${done}/${tasks.length}</div>
+  </div>`;
+  tasks.forEach(task=>{
+    const isDone=isComplete(task.id,ds);
+    const div=document.createElement('div');
+    div.className=`task${isDone?' done':''}`;
+    div.dataset.id=task.id;
+    div.style.borderLeft=`3px solid ${cat.color}40`;
+    div.innerHTML=`
+      <div class="task-check" style="${isDone?`background:${cat.color};border-color:${cat.color};color:#1a1a00`:'border-color:'+cat.color+'60'}" onclick="toggleTask('${task.id}','${ds}',event)">${isDone?'✓':''}</div>
+      <div class="task-info">
+        <div class="task-name">${task.name}</div>
+        <div class="task-meta"><span class="task-time">⏰ ${task.time}</span><span class="task-xp">+${task.xp} XP</span></div>
+      </div>
+      <div class="task-actions">
+        <button class="task-btn" onclick="editTask('${task.id}')">✏️</button>
+        <button class="task-btn" onclick="deleteTask('${task.id}')">🗑️</button>
+      </div>`;
+    sec.appendChild(div);
+  });
+  const addBtn=document.createElement('button');
+  addBtn.className='add-task-btn';
+  addBtn.innerHTML=`<span>+</span> Přidat do ${cat.name}`;
+  addBtn.onclick=()=>openAddTask(catId);
+  sec.appendChild(addBtn);
+  parent.appendChild(sec);
+}
+
+// ─── TASK TOGGLE ─────────────────────────────────────────────────────────────
+function toggleTask(taskId,ds,event){
+  const key=taskId+'_'+ds, task=state.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  if(!state.completions[key]){
+    state.completions[key]=true;
+    state.xp+=task.xp;
+    state.dailyXp[ds]=(state.dailyXp[ds]||0)+task.xp;
+    updateStreak(ds); checkAchievements(); save();
+    showXpPopup(task.xp,event); addShine(taskId);
+    if(getTasksForDate(ds).every(t=>isComplete(t.id,ds))) setTimeout(launchConfetti,300);
+  } else {
+    delete state.completions[key];
+    state.xp=Math.max(0,state.xp-task.xp);
+    state.dailyXp[ds]=Math.max(0,(state.dailyXp[ds]||0)-task.xp);
+    save();
+  }
+  render();
+}
+
+function addShine(id){
+  setTimeout(()=>{
+    const el=document.querySelector(`[data-id="${id}"]`);
+    if(el){ const s=document.createElement('div'); s.className='task-shine'; el.appendChild(s); setTimeout(()=>s.remove(),600); }
+  },50);
+}
+function showXpPopup(xp,e){
+  const p=document.createElement('div'); p.className='xp-popup';
+  p.textContent='+'+xp+' XP ⭐';
+  p.style.left=(e?.clientX||window.innerWidth/2)-30+'px';
+  p.style.top=(e?.clientY||window.innerHeight/2)-20+'px';
+  document.body.appendChild(p); setTimeout(()=>p.remove(),1300);
+}
+function launchConfetti(){
+  const colors=['#f5c542','#f7a62a','#ffd54f','#81c784','#4fc3f7','#ff8a65'];
+  const cont=document.getElementById('confetti-container');
+  for(let i=0;i<60;i++){
+    const p=document.createElement('div'); p.className='confetti-piece';
+    p.style.left=Math.random()*100+'vw'; p.style.top='-10px';
+    p.style.background=colors[Math.floor(Math.random()*colors.length)];
+    p.style.animationDuration=(1.5+Math.random()*2)+'s';
+    p.style.animationDelay=Math.random()*0.5+'s';
+    cont.appendChild(p); setTimeout(()=>p.remove(),4000);
+  }
+}
+
+// ─── STREAK & ACHIEVEMENTS ────────────────────────────────────────────────────
+function updateStreak(ds){
+  if(getDayCompletion(ds)<0.5||state.lastActiveDate===ds) return;
+  const prev=new Date(parseDate(ds)); prev.setDate(prev.getDate()-1);
+  if(!state.lastActiveDate) state.streak=1;
+  else if(state.lastActiveDate===fmtDate(prev)) state.streak=(state.streak||0)+1;
+  else state.streak=1;
+  state.lastActiveDate=ds;
+}
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(a=>{
+    if(!state.unlockedAchievements.includes(a.id)&&a.check(state)){
+      state.unlockedAchievements.push(a.id); showAchievementToast(a);
+    }
+  });
+}
+function showAchievementToast(a){
+  const t=document.createElement('div');
+  t.style.cssText=`position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--xp);border-radius:14px;padding:12px 20px;z-index:1000;display:flex;align-items:center;gap:10px;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,0.5);animation:xpFloat 3s ease-out forwards`;
+  t.innerHTML=`<span style="font-size:24px">${a.icon}</span><div><div style="font-weight:700;color:var(--xp)">${a.name}</div><div style="color:var(--text2);font-size:12px">${a.desc}</div></div>`;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+}
+function openAchievements(){
+  document.getElementById('achieveGrid').innerHTML='';
+  ACHIEVEMENTS.forEach(a=>{
+    const u=state.unlockedAchievements.includes(a.id);
+    const d=document.createElement('div'); d.className=`achievement ${u?'unlocked':'locked'}`;
+    d.innerHTML=`<div class="ach-icon">${a.icon}</div><div class="name">${a.name}</div><div class="desc">${a.desc}</div>`;
+    document.getElementById('achieveGrid').appendChild(d);
+  });
+  document.getElementById('achieveModal').classList.add('open');
+}
+
+// ─── CATEGORY MANAGEMENT ──────────────────────────────────────────────────────
+function renderCatSelector(){
+  const el=document.getElementById('catSelector');
+  el.innerHTML='';
+  state.categories.forEach(cat=>{
+    const chip=document.createElement('div');
+    chip.className='cat-chip'+(selectedCatId===cat.id?' selected':'');
+    chip.style.borderColor=selectedCatId===cat.id?cat.color:undefined;
+    if(selectedCatId===cat.id) chip.style.background=cat.color;
+    chip.textContent=cat.icon+' '+cat.name;
+    chip.onclick=()=>{ selectedCatId=cat.id; renderCatSelector(); };
+    el.appendChild(chip);
+  });
+  // New category chip
+  const newChip=document.createElement('div');
+  newChip.className='cat-chip cat-chip-new';
+  newChip.innerHTML='+ Nová';
+  newChip.onclick=openNewCategoryModal;
+  el.appendChild(newChip);
+}
+
+function openNewCategoryModal(){
+  newCatIcon=ICON_OPTIONS[0]; newCatColor=COLOR_OPTIONS[0];
+  document.getElementById('newCatName').value='';
+  renderIconGrid(); renderColorGrid();
+  document.getElementById('newCatModal').classList.add('open');
+}
+
+function renderIconGrid(){
+  const el=document.getElementById('iconGrid'); el.innerHTML='';
+  ICON_OPTIONS.forEach(icon=>{
+    const div=document.createElement('div');
+    div.className='icon-opt'+(icon===newCatIcon?' selected':'');
+    div.textContent=icon;
+    div.onclick=()=>{ newCatIcon=icon; renderIconGrid(); };
+    el.appendChild(div);
+  });
+}
+
+function renderColorGrid(){
+  const el=document.getElementById('colorGrid'); el.innerHTML='';
+  COLOR_OPTIONS.forEach(color=>{
+    const div=document.createElement('div');
+    div.className='color-opt'+(color===newCatColor?' selected':'');
+    div.style.background=color;
+    div.onclick=()=>{ newCatColor=color; renderColorGrid(); };
+    el.appendChild(div);
+  });
+}
+
+function saveNewCategory(){
+  const name=document.getElementById('newCatName').value.trim();
+  if(!name){ document.getElementById('newCatName').focus(); return; }
+  const id='cat_'+Date.now();
+  state.categories.push({ id, name, icon:newCatIcon, color:newCatColor });
+  selectedCatId=id;
+  save();
+  closeModal('newCatModal');
+  renderCatSelector();
+}
+
+function openManageCategories(){
+  const el=document.getElementById('manageCatList'); el.innerHTML='';
+  state.categories.forEach(cat=>{
+    const div=document.createElement('div'); div.className='cat-item';
+    div.innerHTML=`
+      <div class="cat-item-icon">${cat.icon}</div>
+      <div class="cat-item-name" style="color:${cat.color}">${cat.name}</div>
+      <div class="cat-item-color" style="background:${cat.color}"></div>
+      <button class="cat-item-del" onclick="deleteCategory('${cat.id}')">🗑️</button>`;
+    el.appendChild(div);
+  });
+  document.getElementById('manageCatModal').classList.add('open');
+}
+
+function deleteCategory(id){
+  const inUse=state.tasks.some(t=>t.cat===id);
+  if(inUse){ alert('Kategorie se používá v úkolech a nelze ji smazat.'); return; }
+  if(!confirm('Smazat kategorii?')) return;
+  state.categories=state.categories.filter(c=>c.id!==id);
+  save(); render();
+  closeModal('manageCatModal');
+}
+
+// ─── TASK CRUD ────────────────────────────────────────────────────────────────
+function openAddTask(catId){
+  editingTaskId=null;
+  document.getElementById('modalTitle').textContent='Přidat úkol';
+  document.getElementById('taskName').value='';
+  document.getElementById('taskTime').value='08:00';
+  document.getElementById('taskXp').value='10';
+  document.getElementById('taskRepeat').value='daily';
+  selectedCatId=catId||state.categories[0]?.id||null;
+  renderCatSelector();
+  document.getElementById('taskModal').classList.add('open');
+  setTimeout(()=>document.getElementById('taskName').focus(),300);
+}
+
+function editTask(id){
+  const task=state.tasks.find(t=>t.id===id); if(!task) return;
+  editingTaskId=id;
+  document.getElementById('modalTitle').textContent='Upravit úkol';
+  document.getElementById('taskName').value=task.name;
+  document.getElementById('taskTime').value=task.time;
+  document.getElementById('taskXp').value=task.xp;
+  document.getElementById('taskRepeat').value=task.repeat;
+  selectedCatId=task.cat;
+  renderCatSelector();
+  document.getElementById('taskModal').classList.add('open');
+}
+
+function deleteTask(id){
+  if(!confirm('Smazat tento úkol?')) return;
+  state.tasks=state.tasks.filter(t=>t.id!==id);
+  Object.keys(state.completions).forEach(k=>{ if(k.startsWith(id+'_')) delete state.completions[k]; });
+  save(); render();
+}
+
+function saveTask(){
+  const name=document.getElementById('taskName').value.trim();
+  if(!name){ document.getElementById('taskName').focus(); return; }
+  if(!selectedCatId){ alert('Vyber kategorii.'); return; }
+  const task={
+    id: editingTaskId||'t'+Date.now(), name, cat:selectedCatId,
+    time: document.getElementById('taskTime').value,
+    xp: parseInt(document.getElementById('taskXp').value),
+    repeat: document.getElementById('taskRepeat').value,
+    date: selectedDate,
+  };
+  if(editingTaskId) state.tasks=state.tasks.map(t=>t.id===editingTaskId?task:t);
+  else state.tasks.push(task);
+  save(); closeModal('taskModal'); render();
+}
+
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+}
+
+function changeWeek(dir){
+  currentWeekOffset+=dir;
+  selectedDate=getWeekDates(currentWeekOffset)[0];
+  render();
+}
+
+function requestNotify(){
+  if(typeof Notification==='undefined'){ alert('Notifikace nejsou dostupné.'); return; }
+  Notification.requestPermission().then(p=>{ if(p==='granted') scheduleNotifications(); render(); });
+}
+function scheduleNotifications(){
+  if(typeof Notification==='undefined') return;
+  const ds=today();
+  getTasksForDate(ds).forEach(task=>{
+    if(isComplete(task.id,ds)) return;
+    const [h,m]=task.time.split(':').map(Number), now=new Date();
+    const t=new Date(now.getFullYear(),now.getMonth(),now.getDate(),h,m);
+    const delay=t-now;
+    if(delay>0) setTimeout(()=>{ if(!isComplete(task.id,fmtDate(new Date()))) new Notification('TaskQuest 🎯',{body:task.name,tag:task.id}); },delay);
+  });
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('open'); });
+});
+
+load();
+selectedDate=today();
+render();
+if(typeof Notification!=='undefined'&&Notification.permission==='granted') scheduleNotifications();
+</script>
+</body>
+</html>
