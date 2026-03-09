@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TaskQuest</title>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a24;
+    --surface2: #22222f;
+    --border: #2e2e40;
+    --accent: #f5c542;
+    --accent2: #f7a62a;
+    --text: #e8e8f0;
+    --text2: #888899;
+    --xp: #ffd54f;
+    --streak: #ff8a65;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 16px; position: sticky; top: 0; z-index: 100; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .logo { font-size: 20px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stats { display: flex; gap: 12px; align-items: center; }
+  .stat { font-size: 13px; font-weight: 600; }
+  .stat.xp { color: var(--xp); }
+  .stat.streak { color: var(--streak); }
+
+  .heatmap-row { display: flex; align-items: center; gap: 5px; }
+  .heatmap-label { font-size: 11px; color: var(--text2); white-space: nowrap; flex-shrink: 0; }
+  .heatmap { display: flex; gap: 5px; }
+  .hm-cell { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: rgba(255,255,255,0.5); flex-shrink: 0; }
+  .hm-0 { background: #1e1e2e; }
+  .hm-1 { background: #3a2e10; }
+  .hm-2 { background: #5c4a18; }
+  .hm-3 { background: #8a6e20; }
+  .hm-4 { background: #c49a2a; }
+  .hm-5 { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  .week-nav { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+  .week-title { font-size: 14px; font-weight: 600; color: var(--text2); }
+  .nav-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+
+  .days-scroll { display: flex; overflow-x: auto; padding: 8px 16px; gap: 8px; background: var(--surface2); border-bottom: 1px solid var(--border); scrollbar-width: none; }
+  .days-scroll::-webkit-scrollbar { display: none; }
+  .day-tab { flex: 0 0 auto; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; text-align: center; transition: all 0.2s; min-width: 52px; }
+  .day-tab .day-name { font-size: 11px; color: var(--text2); }
+  .day-tab .day-num { font-size: 18px; font-weight: 700; }
+  .day-tab .day-dot { width: 6px; height: 6px; border-radius: 50%; margin: 2px auto 0; }
+  .day-tab.active { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 16px rgba(245,197,66,0.4); }
+  .day-tab.active .day-name, .day-tab.active .day-num { color: #1a1a00; }
+  .day-tab.today .day-num { color: var(--accent); }
+  .day-tab.active.today .day-num { color: #1a1a00; }
+
+  .content { padding: 12px 16px 100px; max-width: 480px; margin: 0 auto; }
+
+  .section { margin-bottom: 16px; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 6px; }
+  .section-progress { font-size: 11px; color: var(--text2); }
+
+  .task { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; transition: all 0.3s; position: relative; overflow: hidden; }
+  .task.done { opacity: 0.6; }
+  .task.done .task-name { text-decoration: line-through; color: var(--text2); }
+  .task-check { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; font-size: 14px; }
+  .task-info { flex: 1; min-width: 0; }
+  .task-name { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-meta { display: flex; gap: 8px; margin-top: 3px; align-items: center; }
+  .task-time { font-size: 11px; color: var(--text2); }
+  .task-xp { font-size: 11px; color: var(--xp); font-weight: 600; }
+  .task-cat-badge { font-size: 10px; padding: 1px 6px; border-radius: 20px; font-weight: 600; }
+  .task-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .task-btn { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 14px; padding: 4px; border-radius: 6px; }
+
+  .add-task-btn { width: 100%; background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 10px; color: var(--text2); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .add-task-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .day-complete { background: linear-gradient(135deg, rgba(245,197,66,0.15), rgba(247,166,42,0.15)); border: 1px solid var(--accent); border-radius: 16px; padding: 16px; text-align: center; margin-bottom: 16px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,197,66,0.3)} 50%{box-shadow:0 0 20px 5px rgba(245,197,66,0.15)} }
+
+  /* MODALS */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--surface); border-radius: 20px 20px 0 0; padding: 24px 20px 40px; width: 100%; max-width: 480px; transform: translateY(100%); transition: transform 0.3s; max-height: 90vh; overflow-y: auto; }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal h2 { font-size: 18px; margin-bottom: 20px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px; }
+  .form-group input, .form-group select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: 15px; outline: none; }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+  .btn { padding: 12px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+  .btn-primary { background: var(--accent); color: #1a1a00; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-danger { background: #3a1a1a; color: #f76a6a; border: 1px solid #5a2a2a; }
+
+  /* CATEGORY SELECTOR */
+  .cat-selector { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cat-chip { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 20px; border: 2px solid var(--border); background: var(--surface2); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text2); transition: all 0.2s; white-space: nowrap; }
+  .cat-chip.selected { color: #1a1a00; }
+  .cat-chip-new { border-style: dashed; color: var(--text2); }
+  .cat-chip-new:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* CATEGORY MANAGEMENT */
+  .cat-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .cat-item { display: flex; align-items: center; gap: 10px; background: var(--surface2); border-radius: 10px; padding: 10px 12px; }
+  .cat-item-icon { font-size: 20px; }
+  .cat-item-name { flex: 1; font-size: 15px; font-weight: 600; }
+  .cat-item-color { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+  .cat-item-del { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 16px; padding: 4px; }
+  .cat-item-del:hover { color: #f76a6a; }
+
+  /* COLOR PICKER */
+  .color-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .color-opt { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: all 0.2s; }
+  .color-opt.selected { border-color: white; transform: scale(1.15); }
+
+  /* ICON PICKER */
+  .icon-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .icon-opt { width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; background: var(--surface2); border: 2px solid transparent; transition: all 0.2s; }
+  .icon-opt.selected { border-color: var(--accent); background: rgba(245,197,66,0.1); }
+
+  /* ACHIEVEMENTS */
+  .achievements-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+  .achievement { background: var(--surface2); border-radius: 12px; padding: 12px 8px; text-align: center; border: 1px solid var(--border); }
+  .achievement.unlocked { border-color: var(--xp); background: rgba(255,213,79,0.05); }
+  .achievement.locked { opacity: 0.4; filter: grayscale(1); }
+  .achievement .ach-icon { font-size: 28px; margin-bottom: 4px; }
+  .achievement .name { font-size: 10px; font-weight: 600; }
+  .achievement .desc { font-size: 9px; color: var(--text2); margin-top: 2px; }
+
+  .fab { position: fixed; bottom: 24px; right: 20px; width: 56px; height: 56px; border-radius: 18px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: #1a1a00; font-size: 28px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 20px rgba(245,197,66,0.5); z-index: 150; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+
+  .notify-banner { background: rgba(245,197,66,0.1); border: 1px solid var(--accent); border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .notify-banner button { background: var(--accent); border: none; color: #1a1a00; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text2); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+  .confetti-container { position: fixed; inset: 0; pointer-events: none; z-index: 999; overflow: hidden; }
+  .confetti-piece { position: absolute; width: 8px; height: 8px; border-radius: 2px; animation: confettiFall linear forwards; }
+  @keyframes confettiFall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+  .xp-popup { position: fixed; pointer-events: none; z-index: 998; font-size: 18px; font-weight: 800; color: var(--xp); text-shadow: 0 0 10px var(--xp); animation: xpFloat 1.2s ease-out forwards; }
+  @keyframes xpFloat { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(-60px);opacity:0} }
+  .task-shine { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); transform: translateX(-100%); animation: shine 0.5s ease-out forwards; }
+  @keyframes shine { to { transform: translateX(100%); } }
+
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .section-subtitle { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div id="confetti-container" class="confetti-container"></div>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">TaskQuest</div>
+    <div class="stats">
+      <div class="stat streak" id="streakStat">🔥 0</div>
+      <div class="stat xp" id="xpStat">⭐ 0 XP</div>
+      <div style="cursor:pointer;font-size:20px" onclick="openAchievements()">🏆</div>
+    </div>
+  </div>
+  <div class="heatmap-row">
+    <span class="heatmap-label">7 dní:</span>
+    <div class="heatmap" id="heatmap"></div>
+  </div>
+</div>
+
+<div class="week-nav">
+  <button class="nav-btn" onclick="changeWeek(-1)">‹</button>
+  <div class="week-title" id="weekTitle"></div>
+  <button class="nav-btn" onclick="changeWeek(1)">›</button>
+</div>
+<div class="days-scroll" id="daysScroll"></div>
+<div class="content" id="mainContent"></div>
+<button class="fab" onclick="openAddTask()">+</button>
+
+<!-- TASK MODAL -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <h2 id="modalTitle">Přidat úkol</h2>
+    <div class="form-group">
+      <label>Název úkolu</label>
+      <input type="text" id="taskName" placeholder="Co chceš splnit?">
+    </div>
+    <div class="form-group">
+      <label>Kategorie</label>
+      <div class="cat-selector" id="catSelector"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Čas notifikace</label>
+        <input type="time" id="taskTime" value="08:00">
+      </div>
+      <div class="form-group">
+        <label>XP hodnota</label>
+        <select id="taskXp">
+          <option value="5">5 XP – lehký</option>
+          <option value="10" selected>10 XP – střední</option>
+          <option value="20">20 XP – těžký</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Opakování</label>
+      <select id="taskRepeat">
+        <option value="once">Jednorázový</option>
+        <option value="daily" selected>Každý den</option>
+        <option value="weekdays">Pracovní dny</option>
+        <option value="weekends">Víkend</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeModal('taskModal')">Zrušit</button>
+      <button class="btn btn-primary" onclick="saveTask()">Uložit</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW CATEGORY MODAL -->
+<div class="modal-overlay" id="newCatModal">
+  <div class="modal">
+    <h2>Nová kategorie</h2>
+    <div class="form-group">
+      <label>Název</label>
+      <input type="text" id="newCatName" placeholder="Název kategorie">
+    </div>
+    <div class="form-group">
+      <label>Ikona</label>
+      <div class="icon-grid" id="iconGrid"></div>
+    </div>
+    <div class="form-group">
+      <label>Barva</label>
+      <div class="color-grid" id="colorGrid"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeModal('newCatModal')">Zrušit</button>
+      <button class="btn btn-primary" onclick="saveNewCategory()">Vytvořit</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE CATEGORIES MODAL -->
+<div class="modal-overlay" id="manageCatModal">
+  <div class="modal">
+    <h2>Správa kategorií</h2>
+    <div class="cat-list" id="manageCatList"></div>
+    <div class="modal-btns" style="grid-template-columns:1fr">
+      <button class="btn btn-secondary" onclick="closeModal('manageCatModal')">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS MODAL -->
+<div class="modal-overlay" id="achieveModal">
+  <div class="modal">
+    <h2>🏆 Achievementy</h2>
+    <div class="achievements-grid" id="achieveGrid"></div>
+    <div class="modal-btns" style="grid-template-columns:1fr">
+      <button class="btn btn-secondary" onclick="closeModal('achieveModal')">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const ICON_OPTIONS = ['🏠','💪','🧹','🍳','🛒','📚','💼','🧘','🚴','🏃','🐕','🌿','💊','🎯','🎮','✍️','🧺','🚗','💰','🛁','🧠','❤️','🌙','☀️'];
+const COLOR_OPTIONS = ['#4fc3f7','#81c784','#f76a8a','#f5c542','#ce93d8','#ff8a65','#80cbc4','#e57373','#aed581','#4dd0e1','#ffb74d','#9fa8da'];
+const DAY_NAMES = ['Po','Út','St','Čt','Pá','So','Ne'];
+const DAY_FULL = ['Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota','Neděle'];
+const MONTHS = ['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
+
+const ACHIEVEMENTS = [
+  { id:'first', icon:'🌱', name:'První krok', desc:'Splň 1. úkol', check:s=>Object.keys(s.completions).length>=1 },
+  { id:'streak3', icon:'🔥', name:'3 dny v řadě', desc:'Streak 3', check:s=>s.streak>=3 },
+  { id:'streak7', icon:'⚡', name:'Týden síly', desc:'Streak 7', check:s=>s.streak>=7 },
+  { id:'xp100', icon:'💯', name:'100 XP', desc:'Získej 100 XP', check:s=>s.xp>=100 },
+  { id:'xp500', icon:'🌟', name:'500 XP', desc:'Získej 500 XP', check:s=>s.xp>=500 },
+  { id:'perfect', icon:'✨', name:'Perfektní den', desc:'Splň vše za 1 den', check:s=>Object.values(s.dailyXp).some(v=>v>=30) },
+  { id:'tasks10', icon:'🎯', name:'10 splněno', desc:'Celkem 10 úkolů', check:s=>Object.keys(s.completions).length>=10 },
+  { id:'tasks50', icon:'🏅', name:'50 splněno', desc:'Celkem 50 úkolů', check:s=>Object.keys(s.completions).length>=50 },
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let state = {
+  xp: 0, streak: 0, lastActiveDate: null,
+  categories: [
+    { id:'home', name:'Domácnost', icon:'🏠', color:'#4fc3f7' },
+    { id:'gym',  name:'Cvičení',   icon:'💪', color:'#81c784' },
+  ],
+  tasks: [
+    { id:'t1', name:'Ranní rozcvička', cat:'gym',  time:'07:00', xp:10, repeat:'daily' },
+    { id:'t2', name:'Uklidit kuchyň',  cat:'home', time:'09:00', xp:5,  repeat:'daily' },
+    { id:'t3', name:'Večerní procházka',cat:'gym', time:'18:00', xp:10, repeat:'daily' },
+    { id:'t4', name:'Vyprat prádlo',   cat:'home', time:'10:00', xp:10, repeat:'weekdays' },
+  ],
+  completions: {}, dailyXp: {}, unlockedAchievements: [],
+};
+
+let currentWeekOffset=0, selectedDate=null, editingTaskId=null;
+let selectedCatId=null;
+let newCatIcon='🏠', newCatColor='#4fc3f7';
+
+// ─── PERSIST ──────────────────────────────────────────────────────────────────
+function save(){ try{ localStorage.setItem('tq2_state', JSON.stringify(state)); }catch(e){} }
+function load(){ try{ const d=localStorage.getItem('tq2_state'); if(d) state={...state,...JSON.parse(d)}; }catch(e){} }
+
+// ─── DATE HELPERS ─────────────────────────────────────────────────────────────
+function today(){ return fmtDate(new Date()); }
+function fmtDate(d){ return d.toISOString().split('T')[0]; }
+function parseDate(s){ const [y,m,d]=s.split('-'); return new Date(y,m-1,d); }
+function getWeekDates(offset=0){
+  const now=new Date(), mon=new Date(now);
+  const day=now.getDay()===0?7:now.getDay(); // 0=Sun→7, else Mon=1..Sat=6
+  mon.setDate(now.getDate()-day+1+offset*7);
+  mon.setHours(0,0,0,0);
+  return Array.from({length:7},(_,i)=>{ const d=new Date(mon); d.setDate(mon.getDate()+i); return fmtDate(d); });
+}
+
+function getTasksForDate(dateStr){
+  const dow=parseDate(dateStr).getDay();
+  return state.tasks.filter(t=>{
+    if(t.repeat==='daily') return true;
+    if(t.repeat==='weekdays') return dow>=1&&dow<=5;
+    if(t.repeat==='weekends') return dow===0||dow===6;
+    if(t.repeat==='once') return t.date===dateStr;
+    return false;
+  });
+}
+function isComplete(id,date){ return !!state.completions[id+'_'+date]; }
+function getDayCompletion(dateStr){
+  const tasks=getTasksForDate(dateStr);
+  if(!tasks.length) return 0;
+  return tasks.filter(t=>isComplete(t.id,dateStr)).length/tasks.length;
+}
+function getCat(id){ return state.categories.find(c=>c.id===id)||{name:id,icon:'❓',color:'#888'}; }
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render(){ renderHeader(); renderHeatmap(); renderWeekNav(); renderDayTabs(); renderContent(); }
+
+function renderHeader(){
+  document.getElementById('streakStat').textContent='🔥 '+state.streak;
+  document.getElementById('xpStat').textContent='⭐ '+state.xp+' XP';
+}
+
+function renderHeatmap(){
+  const last7=Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-6+i); re
