@@ -180,7 +180,10 @@ body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFo
   <div class="fg" id="gCustom" style="display:none"><label>Dny</label><div class="dprow" id="dpRow"></div></div>
   <div class="fg" id="gOnce" style="display:none"><label>Datum</label><input type="date" id="fDate"></div>
   <div class="fg notif-check-row">
-    <label class="ntoggle"><input type="checkbox" id="fNotif"><span class="nslider"></span><span class="nlabel">🔔 Připomenout v čas úkolu</span></label>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#2a2010;">
+      <input type="checkbox" id="fNotif" style="width:18px;height:18px;accent-color:#d4a843;cursor:pointer;">
+      <span>🔔 Připomenout v čas úkolu</span>
+    </label>
   </div>
   <div class="mbtns">
     <button class="btn btn-no" onclick="closeOv('ovTask')">Zrušit</button>
@@ -429,13 +432,17 @@ function render(){
   calcStreak();
   var st=S.streaks||{home:0,work:0,self:0};
   var allActive=st.home>0&&st.work>0&&st.self>0;
-  // ⚡ BLESK nahrazuje 🔥 Domácnost když jsou všechny aktivní
+  // vždy zobraz všechny tři zvlášť
   document.getElementById('stHome').textContent='🔥 '+st.home;
   document.getElementById('stWork').textContent='☀️ '+st.work;
   document.getElementById('stSelf').textContent='🌸 '+st.self;
+  document.getElementById('stHome').style.display='';
+  document.getElementById('stWork').style.display='';
+  document.getElementById('stSelf').style.display='';
+  // blesk navíc když jsou všechny aktivní
   var stAll=document.getElementById('stAll');
   stAll.style.display=allActive?'':'none';
-  if(allActive) stAll.textContent='⚡';
+  if(allActive) stAll.textContent='⚡ '+Math.min(st.home,st.work,st.self);
   // XP jako srdíčko
   document.getElementById('stX').textContent='❤️ '+S.xp;
   renderHeatmap();
