@@ -9,17 +9,18 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;}
 /* HEADER */
-.hdr{background:#fffdf7;border-bottom:1px solid #e8dfc8;padding:12px 16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
-.hdr-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
-.logo{display:flex;align-items:baseline;gap:8px;}
-.logo-main{font-size:24px;font-weight:600;color:#d4a843;font-family:'Cormorant Garamond',serif;letter-spacing:1px;}
-.logo-sub{font-size:20px;color:#c49535;font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:400;}
-.stats{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;justify-content:flex-end;}
-.stats span{font-size:14px;font-weight:700;color:#d4a843;cursor:default;white-space:nowrap;}
-.stats .ach{cursor:pointer;font-size:16px;}
-.stats .gear{cursor:pointer;font-size:14px;opacity:0.6;}
+.hdr{background:#fffdf7;border-bottom:1px solid #e8dfc8;padding:8px 12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.logo{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.logo-main{font-size:18px;font-weight:600;color:#d4a843;font-family:'Cormorant Garamond',serif;letter-spacing:1px;}
+.logo-sub{font-size:15px;color:#c49535;font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:400;}
+.logo-img{height:28px;width:auto;mix-blend-mode:multiply;opacity:0.75;}
+.stats{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;justify-content:flex-end;flex-shrink:0;}
+.stats span{font-size:11px;font-weight:400;color:#c49535;cursor:default;white-space:nowrap;}
+.stats .ach{cursor:pointer;font-size:12px;}
+.stats .gear{cursor:pointer;font-size:11px;opacity:0.45;}
 .stats .gear:hover{opacity:1;}
-#stAll{font-size:16px;color:#f0a000;text-shadow:0 0 8px rgba(255,160,0,0.5);}
+#stAll{font-size:12px;font-weight:400;color:#e8a000;text-shadow:0 0 5px rgba(255,160,0,0.3);}
 .notif-check-row{margin-top:4px;}
 /* HEATMAP */
 .hm-row{display:flex;align-items:baseline;}
@@ -134,7 +135,7 @@ body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFo
 <div id="cc" class="cc"></div>
 <div class="hdr">
   <div class="hdr-top">
-    <div class="logo"><span class="logo-main">Kaizen</span><span class="logo-sub">… cesta je cíl</span></div>
+    <div class="logo"><img src="data:image/png;base64,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" class="logo-img" alt="logo"><span class="logo-main">Kaizen</span><span class="logo-sub">… cesta je cíl</span></div>
     <div class="stats">
       <span id="stAll" title="Celkový streak" style="display:none">⚡ 0</span>
       <span id="stHome" title="Domácnost streak">🔥 0</span>
@@ -433,18 +434,18 @@ function render(){
   var st=S.streaks||{home:0,work:0,self:0};
   var allActive=st.home>0&&st.work>0&&st.self>0;
   // vždy zobraz všechny tři zvlášť
-  document.getElementById('stHome').textContent='🔥 '+st.home;
-  document.getElementById('stWork').textContent='☀️ '+st.work;
-  document.getElementById('stSelf').textContent='🌸 '+st.self;
+  document.getElementById('stHome').textContent='🔥'+st.home;
+  document.getElementById('stWork').textContent='☀️'+st.work;
+  document.getElementById('stSelf').textContent='🌸'+st.self;
   document.getElementById('stHome').style.display='';
   document.getElementById('stWork').style.display='';
   document.getElementById('stSelf').style.display='';
   // blesk navíc když jsou všechny aktivní
   var stAll=document.getElementById('stAll');
   stAll.style.display=allActive?'':'none';
-  if(allActive) stAll.textContent='⚡ '+Math.min(st.home,st.work,st.self);
+  if(allActive) stAll.textContent='⚡'+Math.min(st.home,st.work,st.self);
   // XP jako srdíčko
-  document.getElementById('stX').textContent='❤️ '+S.xp;
+  document.getElementById('stX').textContent='❤️'+S.xp;
   renderHeatmap();
   renderWeekNav();
   renderDayTabs();
@@ -464,13 +465,12 @@ function showMilestone(icon, msg){
 }
 
 function renderHeatmap(){
-  var mon=mondayOf(today());
+  var mon=addDays(mondayOf(today()),weekOff*7);
   var el=document.getElementById('hmWrap');
   el.innerHTML='';
   for(var i=0;i<7;i++){
     var str=addDays(mon,i);
     var p=dayPct(str);
-    // level 0-5 based on completion
     var lv=0;
     if(p>=0&&p<0.01) lv=0;
     else if(p>0&&p<0.25) lv=1;
@@ -596,7 +596,7 @@ function toggle(tid,str,ev){
     delete S.comp[key];
     S.xp=Math.max(0,S.xp-task.xp);
     S.dailyXp[str]=Math.max(0,(S.dailyXp[str]||0)-task.xp);
-    save();
+    checkAchs();save();
   }
   render();
 }
