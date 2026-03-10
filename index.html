@@ -368,13 +368,26 @@ function load(){
     S.comp=p.comp||{};
     S.dailyXp=p.dailyXp||{};
     S.achs=p.achs||[];
+    S.achLevels=p.achLevels||{};
+    S.allBlitz=p.allBlitz||0;
+    S.lastBlitz=p.lastBlitz||null;
+    S.perfectDays=p.perfectDays||0;
     S.streaks=p.streaks||{home:0,work:0,self:0};
-    // backwards compat: old single streak
     if(p.streak&&!p.streaks) S.streaks={home:p.streak,work:p.streak,self:p.streak};
-    var extraC=(p.cats||[]).filter(function(c){return !DCATS.find(function(d){return d.id===c.id;});});
-    S.cats=DCATS.concat(extraC);
-    var extraT=(p.tasks||[]).filter(function(t){return !DTASKS.find(function(d){return d.id===t.id;});});
-    S.tasks=DTASKS.concat(extraT);
+    // saved cats: user-defined override defaults
+    var savedCats=p.cats||[];
+    var extraC=savedCats.filter(function(c){return !DCATS.find(function(d){return d.id===c.id;});});
+    S.cats=DCATS.map(function(dc){
+      var saved=savedCats.find(function(sc){return sc.id===dc.id;});
+      return saved||dc;
+    }).concat(extraC);
+    // saved tasks: saved version ALWAYS wins over defaults
+    var savedTasks=p.tasks||[];
+    var extraT=savedTasks.filter(function(t){return !DTASKS.find(function(d){return d.id===t.id;});});
+    S.tasks=DTASKS.map(function(dt){
+      var saved=savedTasks.find(function(st){return st.id===dt.id;});
+      return saved||dt;
+    }).concat(extraT);
   }catch(e){}
 }
 
@@ -619,7 +632,7 @@ function renderContent(){
       div.innerHTML=
         '<div class="tchk" style="background:'+(done2?cat.color:'#f5f0e8')+';border-color:'+(done2?cat.color:cat.color+'60')+';color:'+(done2?'#fff':'transparent')+'" onclick="toggle(\''+task.id+'\',\''+str+'\',event)">'+(done2?'✓':'')+'</div>'
         +'<div class="tinfo"><div class="tname">'+task.name+'</div>'
-        +'<div class="tmeta"><span class="ttime">⏰ '+task.time+'</span><span class="txp">+'+task.xp+' ❤️</span>'+(task.notif?'<span class="ttime">🔔 '+task.notifTime+'</span>':'')+'</div></div>'
+        +'<div class="tmeta"><span class="ttime">⏰ '+task.time+'</span><span class="txp">+'+task.xp+' ❤️</span>'+(task.notif?'<span class="ttime">🔔</span>':'')+'</div></div>'
         +'<div class="tbtns"><button class="tbtn" onclick="editTask(\''+task.id+'\')">✏️</button><button class="tbtn" onclick="delTask(\''+task.id+'\')">🗑️</button></div>';
       sec.appendChild(div);
     });
@@ -929,18 +942,24 @@ function askNotif(){
   Notification.requestPermission().then(function(p){if(p==='granted')schedNotifs();render();});
 }
 function schedNotifs(){
-  if(typeof Notification==='undefined'||Notification.permission!=='granted')return;
   var str=today();
   var now=new Date();
   tasksFor(str).forEach(function(task){
     if(!task.notif||isDone(task.id,str))return;
-    var p=task.time.split(':');
+    var p=(task.time||'00:00').split(':');
     var t=new Date(now.getFullYear(),now.getMonth(),now.getDate(),+p[0],+p[1]);
     var diff=t-now;
-    if(diff>0) setTimeout(function(){
-      if(!isDone(task.id,ds(new Date())))
-        new Notification('Kaizen 🌸',{body:'✨ '+task.name,tag:task.id});
-    },diff);
+    if(diff>0&&diff<86400000){
+      setTimeout(function(){
+        if(isDone(task.id,ds(new Date())))return;
+        // try native notification first
+        if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+          new Notification('Kaizen 🌸',{body:'✨ '+task.name,tag:task.id});
+        }
+        // always show in-app reminder toast
+        showMilestone('🔔','Připomenutí: '+task.name);
+      },diff);
+    }
   });
 }
 document.querySelectorAll('.ov').forEach(function(el){
@@ -950,7 +969,7 @@ document.querySelectorAll('.ov').forEach(function(el){
 load();
 selDate=today();
 render();
-if(typeof Notification!=='undefined'&&Notification.permission==='granted')schedNotifs();
+schedNotifs();
 </script>
 </body>
 </html>
