@@ -84,9 +84,10 @@ body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFo
 .modal h2{font-size:17px;margin-bottom:18px;}
 .fg{margin-bottom:13px;}
 .fg label{font-size:11px;color:#9a8a6a;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;font-weight:600;}
-.fg input,.fg select{width:100%;background:#f5f0e8;border:1px solid #e8dfc8;border-radius:10px;padding:10px 13px;color:#2a2010;font-size:14px;outline:none;}
+.fg input,.fg select{width:100%;background:#f5f0e8;border:1px solid #e8dfc8;border-radius:10px;padding:10px 13px;color:#2a2010;font-size:16px;outline:none;box-sizing:border-box;-webkit-appearance:none;appearance:none;}
 .fg input:focus,.fg select:focus{border-color:#d4a843;}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.frow{display:flex;gap:11px;}
+.frow .fg{flex:1;min-width:0;}
 .mbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;}
 .btn{padding:11px;border-radius:11px;font-size:14px;font-weight:600;cursor:pointer;border:none;}
 .btn-ok{background:#d4a843;color:#fff;}
@@ -177,7 +178,7 @@ body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFo
   <div class="fg"><label>Kategorie</label><div class="catsel" id="catSel"></div></div>
   <div class="frow">
     <div class="fg"><label>Čas</label><input type="time" id="fT" value="08:00"></div>
-    <div class="fg"><label>XP</label><select id="fX"><option value="5">5 – lehký</option><option value="10" selected>10 – střední</option><option value="20">20 – těžký</option></select></div>
+    <div class="fg"><label>❤️ Obtížnost</label><select id="fX"><option value="5">5 ❤️ – lehký</option><option value="10" selected>10 ❤️ – střední</option><option value="20">20 ❤️ – těžký</option></select></div>
   </div>
   <div class="fg"><label>Opakování</label>
     <select id="fRep" onchange="onRep()">
@@ -614,10 +615,12 @@ function renderContent(){
     var ct=tasks.filter(function(t){return t.cat===cat.id;});
     if(!ct.length) return;
     var done=ct.filter(function(t){return isDone(t.id,str);}).length;
+    var allDoneCat=done===ct.length;
     var pct=done/ct.length;
     var catStreak=S.streaks&&S.streaks[cat.id]||0;
     var streakIcons={home:'🔥',work:'☀️',self:'🌸'};
-    var streakBadge=catStreak>0?(' <span style="font-size:11px;opacity:0.8">'+(streakIcons[cat.id]||'🔥')+catStreak+'</span>'):'';
+    // streak ikona se zobrazí jen když jsou VŠECHNY tasky splněné
+    var streakBadge=allDoneCat&&catStreak>0?(' <span style="font-size:11px;opacity:0.8">'+(streakIcons[cat.id]||'🔥')+catStreak+'</span>'):'';
     var sec=document.createElement('div');sec.className='sec';
     sec.innerHTML='<div class="sec-hdr">'
       +'<div class="sec-title" style="color:'+cat.color+'">'+cat.icon+' '+cat.name+streakBadge+'</div>'
@@ -632,7 +635,7 @@ function renderContent(){
       div.innerHTML=
         '<div class="tchk" style="background:'+(done2?cat.color:'#f5f0e8')+';border-color:'+(done2?cat.color:cat.color+'60')+';color:'+(done2?'#fff':'transparent')+'" onclick="toggle(\''+task.id+'\',\''+str+'\',event)">'+(done2?'✓':'')+'</div>'
         +'<div class="tinfo"><div class="tname">'+task.name+'</div>'
-        +'<div class="tmeta"><span class="ttime">⏰ '+task.time+'</span><span class="txp">+'+task.xp+' ❤️</span>'+(task.notif?'<span class="ttime">🔔</span>':'')+'</div></div>'
+        +'<div class="tmeta"><span class="ttime">⏰ '+task.time+'</span><span class="txp">+'+task.xp+'❤️</span>'+(task.notif?'<span class="ttime">🔔</span>':'')+'</div></div>'
         +'<div class="tbtns"><button class="tbtn" onclick="editTask(\''+task.id+'\')">✏️</button><button class="tbtn" onclick="delTask(\''+task.id+'\')">🗑️</button></div>';
       sec.appendChild(div);
     });
