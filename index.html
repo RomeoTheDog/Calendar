@@ -197,8 +197,8 @@ body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFo
     </label>
   </div>
   <div class="mbtns">
-    <button class="btn btn-no" onclick="closeOv('ovTask')">Zrušit</button>
-    <button class="btn btn-ok" onclick="saveTask()">Uložit</button>
+    <button type="button" class="btn btn-no" onclick="closeOv('ovTask')">Zrušit</button>
+    <button type="button" class="btn btn-ok" onclick="saveTask()">Uložit</button>
   </div>
 </div></div>
 
@@ -845,7 +845,10 @@ function editTask(id){
   editId=id;
   document.getElementById('ovTaskT').textContent='Upravit úkol';
   document.getElementById('fN').value=t.name;
-  document.getElementById('fT').value=t.time;
+  // ensure HH:MM format for time input
+  var tim=t.time||'08:00';
+  if(tim.length===4) tim='0'+tim; // pad e.g. "8:00" -> "08:00"
+  document.getElementById('fT').value=tim;
   document.getElementById('fX').value=t.xp;
   document.getElementById('fRep').value=t.repeat;
   document.getElementById('fDate').value=t.date||today();
@@ -906,7 +909,7 @@ function saveTask(){
   }
   var task={
     id:editId||'t'+Date.now(),name:name,cat:selCat,
-    time:document.getElementById('fT').value,
+    time:document.getElementById('fT').value||'08:00',
     xp:parseInt(document.getElementById('fX').value),
     repeat:rep,
     date:rep==='once'?document.getElementById('fDate').value:null,
