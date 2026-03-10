@@ -104,13 +104,23 @@ body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFo
 .igrid{display:flex;flex-wrap:wrap;gap:5px;}
 .iopt{width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:19px;display:flex;align-items:baseline;justify-content:center;background:#f5f0e8;border:2px solid transparent;}
 .iopt.on{border-color:#d4a843;}
-.achgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:9px;}
-.achitem{background:#f5f0e8;border-radius:11px;padding:11px 7px;text-align:center;border:1px solid #e8dfc8;}
-.achitem.won{border-color:#d4a843;background:rgba(212,168,67,0.08);}
-.achitem.lost{opacity:0.35;filter:grayscale(1);}
-.achitem .ai{font-size:26px;margin-bottom:3px;}
-.achitem .an{font-size:10px;font-weight:600;}
-.achitem .ad{font-size:9px;color:#9a8a6a;margin-top:1px;}
+.achgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:9px;}
+.achitem{border-radius:13px;padding:12px 8px;text-align:center;border:1px solid #e8dfc8;position:relative;overflow:hidden;}
+.achitem.locked{background:#f0ebe0;opacity:0.5;filter:grayscale(1);}
+.achitem.bronze{background:linear-gradient(135deg,#f5e6c8 0%,#e8c97a 50%,#c8a44a 100%);border-color:#c8a44a;box-shadow:0 2px 8px rgba(180,120,40,0.2);}
+.achitem.silver{background:linear-gradient(135deg,#f0f0f0 0%,#d8d8d8 50%,#b0b0b0 100%);border-color:#b0b0b0;box-shadow:0 2px 8px rgba(150,150,150,0.25);}
+.achitem.gold{background:linear-gradient(135deg,#fff8e0 0%,#ffd700 40%,#d4a843 70%,#b8860b 100%);border-color:#d4a843;box-shadow:0 3px 12px rgba(212,168,67,0.45);}
+.achitem .ai{font-size:28px;margin-bottom:4px;display:block;}
+.achitem .an{font-size:10px;font-weight:700;display:block;color:#3a2a00;}
+.achitem .alevel{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;display:block;margin-top:3px;}
+.achitem.locked .alevel{color:#9a8a6a;}
+.achitem.bronze .alevel{color:#8b5e10;}
+.achitem.silver .alevel{color:#666;}
+.achitem.gold .alevel{color:#7a5200;}
+.achitem .aprog{font-size:8px;color:#9a8a6a;margin-top:2px;display:block;}
+.achitem.bronze .aprog{color:#8b5e10;}
+.achitem.silver .aprog{color:#555;}
+.achitem.gold .aprog{color:#7a5200;}
 .fab{position:fixed;bottom:24px;right:18px;width:54px;height:54px;border-radius:17px;background:#d4a843;border:none;color:#fff;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(212,168,67,0.5);z-index:150;display:flex;align-items:baseline;justify-content:center;}
 .notif-row{display:flex;align-items:center;gap:12px;}
 .ntoggle{display:flex;align-items:center;gap:8px;cursor:pointer;}
@@ -255,20 +265,59 @@ var DNAMES=['Po','Út','St','Čt','Pá','So','Ne'];
 var DFULL=['Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota','Neděle'];
 var MONTHS=['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
 var DPICK=[{l:'Po',v:1},{l:'Út',v:2},{l:'St',v:3},{l:'Čt',v:4},{l:'Pá',v:5},{l:'So',v:6},{l:'Ne',v:0}];
+// Každý achievement má 3 úrovně: bronze, silver, gold
+// val(s) vrací aktuální hodnotu, levels = [bronze_threshold, silver_threshold, gold_threshold]
 var ACHS=[
-  {id:'a1',icon:'🌱',name:'Začátek je všechno',     desc:'Udělala jsi první krok. To je odvaha.',              ok:function(s){return Object.keys(s.comp).length>=1;}},
-  {id:'a2',icon:'🔥',name:'Hřeje to i doma',        desc:'Tvůj domov září tvou péčí.',                         ok:function(s){return (s.streaks&&s.streaks.home||0)>=3;}},
-  {id:'a3',icon:'☀️',name:'Zářivá a pracovitá',     desc:'Tvoje práce mluví za tebe.',                         ok:function(s){return (s.streaks&&s.streaks.work||0)>=3;}},
-  {id:'a4',icon:'🌸',name:'Staráš se o sebe',       desc:'To nejhezčí, co můžeš dělat.',                       ok:function(s){return (s.streaks&&s.streaks.self||0)>=3;}},
-  {id:'a5',icon:'⚡',name:'Jsi úplná!',              desc:'Dáváš ze sebe to nejlepší ve všem najednou.',        ok:function(s){return (s.streaks&&s.streaks.home>0&&s.streaks.work>0&&s.streaks.self>0);}},
-  {id:'a6',icon:'💎',name:'Diamantová vůle',         desc:'Tak se budují krásné návyky.',                       ok:function(s){return s.streaks&&Math.max(s.streaks.home,s.streaks.work,s.streaks.self)>=10;}},
-  {id:'a7',icon:'❤️',name:'Srdce na správném místě',desc:'Tvoje energie je cítit všude kolem.',                ok:function(s){return s.xp>=100;}},
-  {id:'a8',icon:'💖',name:'Plná lásky',              desc:'Tolik péče — sobě i svému okolí. Jsi krásná.',       ok:function(s){return s.xp>=500;}},
-  {id:'a9',icon:'🎯',name:'Cílevědomá žena',         desc:'Deset splněných věcí. Tak se to dělá!',              ok:function(s){return Object.keys(s.comp).length>=10;}},
-  {id:'a10',icon:'🏅',name:'Mistryně dne',           desc:'Padesát věcí za sebou. Jsi neuvěřitelná.',           ok:function(s){return Object.keys(s.comp).length>=50;}},
-  {id:'a11',icon:'👑',name:'Královna rutiny',        desc:'Tvoje stálost tě posouvá dál každý den.',            ok:function(s){return s.streaks&&Math.max(s.streaks.home,s.streaks.work,s.streaks.self)>=30;}},
-  {id:'a12',icon:'🌟',name:'Hvězda každého dne',     desc:'Sto dní péče a krásy. Jsi naprostá inspirace.',      ok:function(s){return s.streaks&&Math.max(s.streaks.home,s.streaks.work,s.streaks.self)>=100;}}
+  {id:'a1', icon:'🌱', name:'Začátek je všechno',
+    desc:'Splněné úkoly celkem',
+    levels:[1,10,50],
+    val:function(s){return Object.keys(s.comp).length;}},
+  {id:'a2', icon:'🎯', name:'Cílevědomá žena',
+    desc:'Splněné úkoly celkem',
+    levels:[100,500,1000],
+    val:function(s){return Object.keys(s.comp).length;}},
+  {id:'a3', icon:'🔥', name:'Hřeje to i doma',
+    desc:'Domácnost — dny v řadě',
+    levels:[3,30,365],
+    val:function(s){return (s.streaks&&s.streaks.home)||0;}},
+  {id:'a4', icon:'☀️', name:'Zářivá a pracovitá',
+    desc:'Práce — dny v řadě',
+    levels:[3,30,365],
+    val:function(s){return (s.streaks&&s.streaks.work)||0;}},
+  {id:'a5', icon:'🌸', name:'Staráš se o sebe',
+    desc:'Péče o sebe — dny v řadě',
+    levels:[3,30,365],
+    val:function(s){return (s.streaks&&s.streaks.self)||0;}},
+  {id:'a6', icon:'⚡', name:'Jsi úplná!',
+    desc:'Všechny 3 streaky aktivní',
+    levels:[1,7,30],
+    val:function(s){return s.allBlitz||0;}},
+  {id:'a7', icon:'💎', name:'Diamantová vůle',
+    desc:'Nejdelší streak',
+    levels:[10,50,200],
+    val:function(s){return s.streaks?Math.max(s.streaks.home,s.streaks.work,s.streaks.self):0;}},
+  {id:'a8', icon:'👑', name:'Královna rutiny',
+    desc:'Nejdelší streak',
+    levels:[30,100,500],
+    val:function(s){return s.streaks?Math.max(s.streaks.home,s.streaks.work,s.streaks.self):0;}},
+  {id:'a9', icon:'❤️', name:'Srdce na správném místě',
+    desc:'XP celkem',
+    levels:[100,500,2000],
+    val:function(s){return s.xp||0;}},
+  {id:'a10',icon:'💖', name:'Plná lásky',
+    desc:'XP celkem',
+    levels:[1000,5000,10000],
+    val:function(s){return s.xp||0;}},
+  {id:'a11',icon:'🏅', name:'Mistryně dne',
+    desc:'Perfektní dny celkem',
+    levels:[5,30,100],
+    val:function(s){return s.perfectDays||0;}},
+  {id:'a12',icon:'🌟', name:'Hvězda každého dne',
+    desc:'Perfektní dny celkem',
+    levels:[10,50,200],
+    val:function(s){return s.perfectDays||0;}}
 ];
+var ACH_LEVELS=['Locked','Bronze','Silver','Gold'];
 
 // ═══ DEFAULT DATA ═════════════════════════════════════════════════════════════
 var DCATS=[
@@ -636,20 +685,75 @@ function confetti(){
 }
 
 // ═══ ACHIEVEMENTS ═════════════════════════════════════════════════════════════
+function achLevel(a){
+  // returns 0=locked, 1=bronze, 2=silver, 3=gold
+  var v=a.val(S);
+  if(v>=a.levels[2]) return 3;
+  if(v>=a.levels[1]) return 2;
+  if(v>=a.levels[0]) return 1;
+  return 0;
+}
 function checkAchs(){
+  // track allBlitz streak (days in a row where all 3 streaks active)
+  var t=today();
+  if(S.streaks&&S.streaks.home>0&&S.streaks.work>0&&S.streaks.self>0){
+    if(S.lastBlitz===t){
+      // already counted today
+    } else if(S.lastBlitz===addDays(t,-1)){
+      S.allBlitz=(S.allBlitz||0)+1;
+      S.lastBlitz=t;
+    } else {
+      S.allBlitz=1;
+      S.lastBlitz=t;
+    }
+  }
+  // track perfectDays
+  var pdays=0;
+  Object.keys(S.comp).forEach(function(k){
+    // count unique days that were perfect
+  });
+  // simpler: count days where all tasks were done
+  var daysChecked={};
+  Object.keys(S.comp).forEach(function(k){
+    var d=k.split('_')[1];
+    if(!daysChecked[d]){
+      daysChecked[d]=true;
+      var tasks=tasksFor(d);
+      if(tasks.length>0&&tasks.every(function(t){return isDone(t.id,d);})){
+        pdays++;
+      }
+    }
+  });
+  S.perfectDays=pdays;
+
+  // check each achievement for level up
+  if(!S.achLevels) S.achLevels={};
   ACHS.forEach(function(a){
-    if(S.achs.indexOf(a.id)<0&&a.ok(S)){
-      S.achs.push(a.id);
-      showMilestone(a.icon, a.name+' — '+a.desc);
+    var prev=S.achLevels[a.id]||0;
+    var cur=achLevel(a);
+    if(cur>prev){
+      S.achLevels[a.id]=cur;
+      var lname=ACH_LEVELS[cur];
+      showMilestone(a.icon, a.name+' — '+lname+'!');
     }
   });
 }
 function openAch(){
   var g=document.getElementById('achGrid');g.innerHTML='';
+  if(!S.achLevels) S.achLevels={};
   ACHS.forEach(function(a){
-    var u=S.achs.indexOf(a.id)>=0;
-    var d=document.createElement('div');d.className='achitem '+(u?'won':'lost');
-    d.innerHTML='<div class="ai">'+a.icon+'</div><div class="an">'+a.name+'</div><div class="ad">'+a.desc+'</div>';
+    var lv=achLevel(a);
+    var lvName=ACH_LEVELS[lv];
+    var cls='achitem '+(lv===0?'locked':lv===1?'bronze':lv===2?'silver':'gold');
+    var v=a.val(S);
+    var nextThresh=lv<3?a.levels[lv]:null;
+    var prog=nextThresh?v+' / '+nextThresh+' '+a.desc:'✓ '+a.desc;
+    var d=document.createElement('div');
+    d.className=cls;
+    d.innerHTML='<span class="ai">'+a.icon+'</span>'
+      +'<span class="an">'+a.name+'</span>'
+      +'<span class="alevel">'+lvName+'</span>'
+      +'<span class="aprog">'+prog+'</span>';
     g.appendChild(d);
   });
   document.getElementById('ovAch').classList.add('open');
