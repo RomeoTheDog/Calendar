@@ -17,7 +17,10 @@ body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFo
 .stats{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;justify-content:flex-end;}
 .stats span{font-size:14px;font-weight:700;color:#d4a843;cursor:default;white-space:nowrap;}
 .stats .ach{cursor:pointer;font-size:16px;}
+.stats .gear{cursor:pointer;font-size:14px;opacity:0.6;}
+.stats .gear:hover{opacity:1;}
 #stAll{font-size:16px;color:#f0a000;text-shadow:0 0 8px rgba(255,160,0,0.5);}
+.notif-check-row{margin-top:4px;}
 /* HEATMAP */
 .hm-row{display:flex;align-items:baseline;}
 .hm-lbl{display:none;}
@@ -108,6 +111,14 @@ body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFo
 .achitem .an{font-size:10px;font-weight:600;}
 .achitem .ad{font-size:9px;color:#9a8a6a;margin-top:1px;}
 .fab{position:fixed;bottom:24px;right:18px;width:54px;height:54px;border-radius:17px;background:#d4a843;border:none;color:#fff;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(212,168,67,0.5);z-index:150;display:flex;align-items:baseline;justify-content:center;}
+.notif-row{display:flex;align-items:center;gap:12px;}
+.ntoggle{display:flex;align-items:center;gap:8px;cursor:pointer;}
+.ntoggle input{display:none;}
+.nslider{width:42px;height:24px;background:#e8dfc8;border-radius:12px;position:relative;transition:background 0.2s;flex-shrink:0;}
+.nslider::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.ntoggle input:checked+.nslider{background:#d4a843;}
+.ntoggle input:checked+.nslider::after{transform:translateX(18px);}
+.nlabel{font-size:13px;color:#5a4a20;font-weight:600;}
 .notif-bar{background:rgba(212,168,67,0.1);border:1px solid #d4a843;border-radius:11px;padding:11px;margin-bottom:11px;display:flex;align-items:baseline;gap:9px;font-size:12px;}
 .notif-bar button{background:#d4a843;border:none;color:#fff;padding:5px 11px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;}
 .cc{position:fixed;inset:0;pointer-events:none;z-index:999;overflow:hidden;}
@@ -131,6 +142,7 @@ body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFo
       <span id="stSelf" title="Péče o sebe streak">🌸 0</span>
       <span id="stX" title="XP">❤️ 0</span>
       <span class="ach" onclick="openAch()">🏆</span>
+      <span class="gear" onclick="openSettings()">⚙️</span>
     </div>
   </div>
   <div class="hm-row">
@@ -167,6 +179,9 @@ body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFo
   </div>
   <div class="fg" id="gCustom" style="display:none"><label>Dny</label><div class="dprow" id="dpRow"></div></div>
   <div class="fg" id="gOnce" style="display:none"><label>Datum</label><input type="date" id="fDate"></div>
+  <div class="fg notif-check-row">
+    <label class="ntoggle"><input type="checkbox" id="fNotif"><span class="nslider"></span><span class="nlabel">🔔 Připomenout v čas úkolu</span></label>
+  </div>
   <div class="mbtns">
     <button class="btn btn-no" onclick="closeOv('ovTask')">Zrušit</button>
     <button class="btn btn-ok" onclick="saveTask()">Uložit</button>
@@ -185,7 +200,32 @@ body{background:#f5f0e8;color:#2a2010;font-family:-apple-system,BlinkMacSystemFo
   </div>
 </div></div>
 
-<div class="ov" id="ovAch">
+<div class="ov" id="ovSettings">
+<div class="modal">
+  <h2>⚙️ Nastavení</h2>
+  <div class="fg">
+    <label>Uložiště dat</label>
+    <p style="font-size:12px;color:#9a8a6a;margin-bottom:10px;">Data jsou uložena v <strong>localStorage</strong> tohoto prohlížeče. Export = záloha jako soubor, Import = obnovení ze zálohy.</p>
+  </div>
+  <div class="fg">
+    <label>Export dat</label>
+    <button class="btn btn-ok" style="width:100%" onclick="exportData()">📥 Stáhnout zálohu (.json)</button>
+  </div>
+  <div class="fg">
+    <label>Import dat</label>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="btn btn-no" style="width:100%;border:1.5px dashed #d4a843;color:#d4a843;" onclick="document.getElementById('importFile').click()">📤 Načíst zálohu (.json)</button>
+    <p style="font-size:11px;color:#e07878;margin-top:6px;">⚠️ Import přepíše všechna současná data.</p>
+  </div>
+  <div class="fg" style="margin-top:4px">
+    <label>Notifikace</label>
+    <button class="btn btn-no" style="width:100%" onclick="askNotif()">🔔 Povolit notifikace</button>
+    <p id="notifStatus" style="font-size:11px;color:#9a8a6a;margin-top:6px;text-align:center;"></p>
+  </div>
+  <div class="mbtns" style="grid-template-columns:1fr;margin-top:8px">
+    <button class="btn btn-no" onclick="closeOv('ovSettings')">Zavřít</button>
+  </div>
+</div></div>
 <div class="modal">
   <h2>🏆 Achievementy</h2>
   <div class="achgrid" id="achGrid"></div>
@@ -521,7 +561,7 @@ function renderContent(){
       div.innerHTML=
         '<div class="tchk" style="background:'+(done2?cat.color:'#f5f0e8')+';border-color:'+(done2?cat.color:cat.color+'60')+';color:'+(done2?'#fff':'transparent')+'" onclick="toggle(\''+task.id+'\',\''+str+'\',event)">'+(done2?'✓':'')+'</div>'
         +'<div class="tinfo"><div class="tname">'+task.name+'</div>'
-        +'<div class="tmeta"><span class="ttime">⏰ '+task.time+'</span><span class="txp">+'+task.xp+' ❤️</span></div></div>'
+        +'<div class="tmeta"><span class="ttime">⏰ '+task.time+'</span><span class="txp">+'+task.xp+' ❤️</span>'+(task.notif?'<span class="ttime">🔔 '+task.notifTime+'</span>':'')+'</div></div>'
         +'<div class="tbtns"><button class="tbtn" onclick="editTask(\''+task.id+'\')">✏️</button><button class="tbtn" onclick="delTask(\''+task.id+'\')">🗑️</button></div>';
       sec.appendChild(div);
     });
@@ -680,7 +720,7 @@ function openAdd(catId){
   document.getElementById('fRep').value='daily';
   document.getElementById('fDate').value=selDate||today();
   document.getElementById('gCustom').style.display='none';
-  document.getElementById('gOnce').style.display='none';
+  document.getElementById('fNotif').checked=false;
   selCD=[];
   selCat=catId||S.cats[0].id;
   renderCatSel();
@@ -696,6 +736,7 @@ function editTask(id){
   document.getElementById('fX').value=t.xp;
   document.getElementById('fRep').value=t.repeat;
   document.getElementById('fDate').value=t.date||today();
+  document.getElementById('fNotif').checked=!!t.notif;
   selCD=t.cd?t.cd.slice():[];
   onRep();selCat=t.cat;renderCatSel();
   document.getElementById('ovTask').classList.add('open');
@@ -706,23 +747,62 @@ function delTask(id){
   Object.keys(S.comp).forEach(function(k){if(k.indexOf(id+'_')===0)delete S.comp[k];});
   save();render();
 }
+function onNotifToggle(){}
+function openSettings(){
+  var st=document.getElementById('notifStatus');
+  if(typeof Notification==='undefined') st.textContent='Notifikace nejsou v tomto prohlížeči dostupné.';
+  else if(Notification.permission==='granted') st.textContent='✅ Notifikace jsou povoleny.';
+  else if(Notification.permission==='denied') st.textContent='❌ Notifikace jsou zakázány — povolte je v nastavení prohlížeče/iOS.';
+  else st.textContent='⏳ Notifikace zatím nebyly povoleny.';
+  document.getElementById('ovSettings').classList.add('open');
+}
+function exportData(){
+  var json=JSON.stringify(S,null,2);
+  var blob=new Blob([json],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='kaizen-zaloha-'+today()+'.json';
+  a.click();
+}
+function importData(e){
+  var file=e.target.files[0];if(!file)return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    try{
+      var p=JSON.parse(ev.target.result);
+      if(!p.tasks||!p.comp){alert('Soubor není platná záloha Kaizen.');return;}
+      if(!confirm('Opravdu chceš přepsat všechna data zálohou?'))return;
+      localStorage.setItem('tq_final',JSON.stringify(p));
+      load();render();
+      closeOv('ovSettings');
+      showMilestone('📥','Data byla úspěšně obnovena ze zálohy!');
+    }catch(err){alert('Chyba při čtení souboru.');}
+  };
+  r.readAsText(file);
+  e.target.value='';
+}
 function saveTask(){
   var name=document.getElementById('fN').value.trim();
   if(!name){document.getElementById('fN').focus();return;}
   if(!selCat){alert('Vyber kategorii.');return;}
   var rep=document.getElementById('fRep').value;
   if(rep==='custom'&&!selCD.length){alert('Vyber aspoň jeden den.');return;}
+  var notifOn=document.getElementById('fNotif').checked;
+  if(notifOn && typeof Notification!=='undefined' && Notification.permission==='default'){
+    Notification.requestPermission();
+  }
   var task={
     id:editId||'t'+Date.now(),name:name,cat:selCat,
     time:document.getElementById('fT').value,
     xp:parseInt(document.getElementById('fX').value),
     repeat:rep,
     date:rep==='once'?document.getElementById('fDate').value:null,
-    cd:rep==='custom'?selCD.slice():null
+    cd:rep==='custom'?selCD.slice():null,
+    notif:notifOn
   };
   if(editId) S.tasks=S.tasks.map(function(t){return t.id===editId?task:t;});
   else S.tasks.push(task);
-  save();closeOv('ovTask');render();
+  save();closeOv('ovTask');render();schedNotifs();
 }
 
 // ═══ MISC ═════════════════════════════════════════════════════════════════════
@@ -733,15 +813,18 @@ function askNotif(){
   Notification.requestPermission().then(function(p){if(p==='granted')schedNotifs();render();});
 }
 function schedNotifs(){
-  if(typeof Notification==='undefined')return;
+  if(typeof Notification==='undefined'||Notification.permission!=='granted')return;
   var str=today();
+  var now=new Date();
   tasksFor(str).forEach(function(task){
-    if(isDone(task.id,str))return;
-    var p=task.time.split(':'),now=new Date();
+    if(!task.notif||isDone(task.id,str))return;
+    var p=task.time.split(':');
     var t=new Date(now.getFullYear(),now.getMonth(),now.getDate(),+p[0],+p[1]);
-    if(t-now>0) setTimeout(function(){
-      if(!isDone(task.id,ds(new Date()))) new Notification('Kaizen 🎯',{body:task.name,tag:task.id});
-    },t-now);
+    var diff=t-now;
+    if(diff>0) setTimeout(function(){
+      if(!isDone(task.id,ds(new Date())))
+        new Notification('Kaizen 🌸',{body:'✨ '+task.name,tag:task.id});
+    },diff);
   });
 }
 document.querySelectorAll('.ov').forEach(function(el){
